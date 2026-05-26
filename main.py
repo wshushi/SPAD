@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import os
 
 # Safely import the custom SPAD model, or mock it if missing
 try:
@@ -258,7 +259,7 @@ def main():
     plt.tight_layout()
     plt.savefig('low.png', dpi=150)
     print("Plot saved to output.png")
-    plt.show()
+    os.startfile('low.png')  # Windows only
 
 if __name__ == "__main__":
     main()
