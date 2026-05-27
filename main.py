@@ -18,8 +18,9 @@ total_ticks = int(sim_time * tick_hz)
 
 GRAVITY = 9.81 # m/s^2
 
-# C_LIGHT = 3e8   # speed of light [m/s]
-C_LIGHT = 2.25e8 # speed of light in water [m/s]
+# Cambio la velocità della luce, visto che voglio lavorare fuori dall'acqua
+C_LIGHT = 3e8   # speed of light [m/s]
+# C_LIGHT = 2.25e8 # speed of light in water [m/s]
 
 
 spad_interval = int(tick_hz/7)
@@ -95,7 +96,32 @@ def get_true_reading(t, mode, offset, amplitude, omega, gradient=0.0, phase=0.0,
         if z <= 0.0:
             z = 1e-6  # Clamp to a near-zero positive value
             a = 0.0   # Acceleration stops
+    elif mode == "DRONE_LANDING":
+        # Caso d'uso reale: Atterraggio drone lineare partendo da 'offset'
+        if t < 2.0:
+            # Fase 1: Hovering alla quota iniziale (offset)
+            z = offset
+            a = 0.0
+        elif t < 12.0:
+            # Fase 2: Discesa costante fino a 2 metri dal suolo
+            dt_m = t - 2.0
+            v_descend = (2.0 - offset) / 10.0  # calcola la velocità per arrivare a 2m in 10s
+            z = offset + v_descend * dt_m
+            a = 0.0
+        elif t < 16.0:
+            # Fase 3: Frenata e discesa finale fino a zero
+            dt_m = t - 12.0
+            # Interpolazione fluida per toccare terra a 16s
+            z = 2.0 * (1.0 - dt_m / 4.0)**2
+            a = 0.25 # leggera accelerazione positiva (frenata)
+        else:
+            # Fase 4: Drone fermo a terra
+            z = 0.0
+            a = 0.0
 
+        if z < 0.0:
+            z = 0.0
+            a = 0.0
     else:
         raise ValueError(f"Unknown flight profile mode: {mode}")
 
@@ -164,7 +190,7 @@ def main():
         # ==========================================
         # STEP A: SOURCE OF TRUTH
         # ==========================================
-        true_z, true_a = get_true_reading(t, "UW", offset, amplitude, omega, -1.5)
+        true_z, true_a = get_true_reading(t, "DRONE_LANDING", offset, amplitude, omega)
         t_history.append(t)
         true_z_history.append(true_z)
         true_a_history.append(true_a)
